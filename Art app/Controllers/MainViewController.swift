@@ -46,8 +46,14 @@ class MainViewController: UIViewController {
     
     // MARK: - Property
     
-        var artist = [Artist]()
-        let identifire = "cellid"
+    var artist = [Artist]()
+    var allArtists = [Artist]()
+    var filteredArtists = [Artist]() {
+        didSet {
+            tableView.reloadData()
+        }
+    }
+    let identifire = "cellid"
     
     // MARK: - Life Cycle
     
@@ -56,23 +62,24 @@ class MainViewController: UIViewController {
         view.backgroundColor = .white
         setupHeaderStackView()
         setupTableView()
+        searchTextField.delegate = self
         
         
         let anonymousFuncrion = {(fetchArtistList: [Artist]) in
             DispatchQueue.main.async {
-                self.artist = fetchArtistList
-                self.tableView.reloadData()
+                self.allArtists = fetchArtistList
+                self.filteredArtists = fetchArtistList
             }
         }
-
+        
         ArtAPIManager.shared.fetchData(oneComplection: anonymousFuncrion)
     }
-
+    
     // MARK: - Setup Views
     
     func setupHeaderStackView() {
         view.addSubview(headerStackView)
-       
+        
         headerStackView.addArrangedSubview(searchTextField)
         headerStackView.addArrangedSubview(searchButton)
         
@@ -82,54 +89,69 @@ class MainViewController: UIViewController {
             headerStackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 15),
             searchButton.heightAnchor.constraint(equalToConstant: 40),
             searchButton.widthAnchor.constraint(equalToConstant: 40)
-                ])
+        ])
         
     }
-
-//    func textFieldDidEndEditing(_ textField: UITextField) {
-//        if let city = searchTextField.text {
-//            //weatherManager.fetchWeather(cityName: city )
-//        }
-//    }
-
+    
+    //    func textFieldDidEndEditing(_ textField: UITextField) {
+    //        if let city = searchTextField.text {
+    //            //weatherManager.fetchWeather(cityName: city )
+    //        }
+    //    }
+    
     
     func setupTableView() {
         view.addSubview(tableView)
         tableView.delegate = self
         tableView.register(ArtistCell.self, forCellReuseIdentifier: identifire)
         tableView.dataSource = self
-
- 
+        
+        
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: headerStackView.bottomAnchor, constant: 15),
-                    tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                    tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                    tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-                ])
-
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
         tableView.translatesAutoresizingMaskIntoConstraints = false
     }
     // MARK: - Actions
-
-     @objc func searchPressed(_ sender: UIButton) {
+    
+    @objc func searchPressed(_ sender: UIButton) {
         searchTextField.endEditing(true)
-         print("hello")
+        performSearch()
+    }
+    
+    private func performSearch() {
+        guard let searchText = searchTextField.text?.lowercased().trimmingCharacters(in: .whitespaces) else {
+            filteredArtists = allArtists
+            return
+        }
+        
+        if searchText.isEmpty {
+            filteredArtists = allArtists
+        } else {
+            filteredArtists = allArtists.filter {
+                $0.name.lowercased().contains(searchText) ||
+                $0.bio.lowercased().contains(searchText)
+            }
+        }
     }
 }
-
 
 // MARK: - UiTableViewDataSourse
 
 extension MainViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return artist.count
+        return filteredArtists.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: identifire, for: indexPath)
         
-       let artist = artist[indexPath.row]
+        let artist = filteredArtists[indexPath.row]
         
         guard let artistoCell = cell as? ArtistCell else {
             return cell
@@ -161,7 +183,7 @@ extension MainViewController: UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        let text = artist[indexPath.row].bio
+        let text = allArtists[indexPath.row].bio
           let width = tableView.frame.width 
           let size = CGSize(width: width, height: .greatestFiniteMagnitude)
         
@@ -181,7 +203,9 @@ extension MainViewController: UITextFieldDelegate {
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         searchTextField.endEditing(true)
+        performSearch()
         return true
+
     }
     
     private func textFieldDidBeginEditing(_ textField: UITextField) -> Bool {
@@ -193,12 +217,9 @@ extension MainViewController: UITextFieldDelegate {
         }
     }
     
-//    func textFieldDidEndEditing(_ textField: UITextField, reason: UITextField.DidEndEditingReason) {
-//        if let city = searchTextField.text {
-//            //weatherManager.fetchWeather(cityName: city)
-//        }
-//        searchTextField.text = ""
-//    }
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        performSearch()
+    }
     
 }
 
