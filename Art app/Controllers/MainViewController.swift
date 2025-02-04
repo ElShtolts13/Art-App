@@ -175,7 +175,7 @@ extension MainViewController: UITableViewDataSource {
 extension MainViewController: UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let artist = artist[indexPath.row]
+        let artist = allArtists[indexPath.row]
         let detailViewConroller = DetailViewController()
         detailViewConroller.artist = artist
         self.present(detailViewConroller, animated: true)
